@@ -1,0 +1,533 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Last Rex 3D: Jungle Island</title>
+<style>
+:root{--bg:#0e1a12;--ink:#f1ecd2;--ac:#e8a33d;--bad:#d9483b;--pn:#16261b;box-sizing:border-box}
+html,body{height:100%;margin:0;background:var(--bg);color:var(--ink);font-family:"Trebuchet MS",Verdana,sans-serif;overflow:hidden;touch-action:none}
+canvas{display:block}
+#hud{position:fixed;top:0;left:0;right:0;padding:calc(10px + env(safe-area-inset-top,0px)) 12px 0;display:flex;gap:14px;flex-wrap:wrap;align-items:center;pointer-events:none;font-size:14px;text-shadow:0 1px 3px #000}
+.bar{display:inline-block;vertical-align:middle;width:120px;height:14px;background:#0009;border:2px solid #000a;border-radius:8px;overflow:hidden}
+.bar i{display:block;height:100%}
+#ab{position:fixed;right:12px;bottom:calc(14px + env(safe-area-inset-bottom,0px));display:flex;gap:8px}
+#ab button{width:58px;height:58px;font-size:18px;padding:0;border-radius:50%;margin:0}
+#st{position:fixed;width:90px;height:90px;border:3px solid #fff6;border-radius:50%;pointer-events:none;display:none}
+#ov{z-index:3;position:fixed;inset:0;overflow:auto;background:#050c08f2;padding:calc(20px + env(safe-area-inset-top,0px)) 16px 30px;text-align:center}
+#ov>div,#pz>div{max-width:780px;margin:0 auto}
+#pz{position:fixed;inset:0;overflow:auto;background:#050c08f2;padding:calc(20px + env(safe-area-inset-top,0px)) 16px 30px;text-align:center;z-index:5}
+#sp{position:fixed;inset:0;pointer-events:none;display:none;z-index:1;font-size:13px;text-shadow:0 1px 3px #000}
+#sp i{position:absolute;left:50%;top:0;bottom:0;width:4px;margin-left:-2px;background:#000}
+#sp div{position:absolute;top:calc(8px + env(safe-area-inset-top,0px));width:calc(50% - 20px)}
+#h1{left:10px}#h2{right:10px;text-align:right}
+#pzb{pointer-events:auto;font-size:14px;padding:6px 12px;margin:0 0 0 auto}
+button:disabled{opacity:.45;cursor:default}
+h1{font-family:Impact,"Arial Narrow Bold",sans-serif;font-size:clamp(40px,9vw,72px);margin:0 0 8px;letter-spacing:1px;color:var(--ac);font-weight:400}
+h2{margin:6px 0;color:var(--ac)}
+p{line-height:1.5;margin:8px 0}
+button{font:inherit;font-size:18px;background:var(--ac);color:#1b1206;border:0;border-radius:10px;padding:12px 26px;margin:8px 5px 0;cursor:pointer}
+button:focus-visible{outline:3px solid var(--ink);outline-offset:3px}
+#diffs button,#modes button{background:var(--pn);color:var(--ink);border:2px solid #fff3;font-size:15px;padding:9px 14px;margin:4px}
+#diffs button.sel,#modes button.sel{background:var(--ac);color:#1b1206;border-color:var(--ac)}
+#grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px;text-align:left;margin-top:12px}
+.card{background:var(--pn);border:2px solid #fff2;border-radius:12px;padding:10px 12px}
+.card.own{border-color:#7fc15a}
+.card b{color:var(--ac)}
+.card small{display:block;opacity:.85;margin:4px 0 8px;line-height:1.35;font-size:13px}
+.card button{font-size:14px;padding:6px 12px;margin:0}
+.card button:disabled{opacity:.45;cursor:default}
+</style>
+</head>
+<body>
+<div id="hud" hidden>
+  <span id="clock"></span>
+  <span><span id="hl">Hunger</span> <span class="bar"><i id="hu" style="background:var(--ac)"></i></span></span>
+  <span>Health <span class="bar"><i id="hp" style="background:var(--bad)"></i></span></span>
+  <span>Stamina <span class="bar"><i id="stb" style="background:#4aa3df"></i></span></span>
+  <span id="sc"></span><button id="pzb">Pause</button>
+</div>
+<div id="ab"></div>
+<div id="st"></div>
+<div id="ov">
+  <div id="menu">
+    <h1>Last Rex 3D</h1>
+    <p id="m">You’re the last dinosaur on Jungle Island. Eat berries and humans to stay alive. Hunters shoot by day and tanks roll in every night.</p>
+    <h2>Choose mode</h2>
+    <div id="modes"></div>
+    <p id="md"></p>
+    <h2>Choose difficulty</h2>
+    <div id="diffs"></div>
+    <p id="dd"></p>
+    <p>Coins: <b id="coins"></b></p>
+    <button id="go">Start surviving</button><button id="shopb">Shop</button><button id="gdb">Guide book</button>
+    <p><b>Move</b> WASD or arrows. <b>Sprint</b> Shift. <b>Bite</b> Space or click. <b>Abilities</b> Q, R, F, E. <b>Pause and guide</b> Esc.<br>Phone: drag on the left to move, tap the right to bite. Red rings show where tank shells land.</p>
+  </div>
+  <div id="shop" hidden>
+    <h1>Shop</h1>
+    <p>Coins: <b id="coins2"></b>. Abilities are yours forever. Earn coins by eating, surviving days and winning.</p>
+    <button id="back">Back to menu</button><button id="tabd">Dinosaur abilities</button><button id="tabh">Human arsenal</button><button id="tabn">Dinosaurs</button><button id="tabc">Customize</button>
+    <div id="grid"></div>
+  </div>
+</div>
+<div id='sp'><i></i><div id='h1'></div><div id='h2'></div></div>
+<div id='pz' hidden>
+  <div id='pzm'><h1>Paused</h1><button id='rsm'>Resume</button><button id='gdb2'>Guide book</button><button id='qt'>Quit to menu</button></div>
+  <div id='gd' hidden><h1>Guide book</h1><div id='gc'></div><button id='gprev'>Previous</button><button id='gnext'>Next</button><button id='gback'>Back</button></div>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+const $=id=>document.getElementById(id),R=(a,b)=>a+Math.random()*(b-a),cl=(v,a,b)=>Math.max(a,Math.min(b,v));
+const MW=520,MH=380,DAYL=45,CYC=75;
+const DIFF=[
+['easy','Easy',.6,.6,.7,.5,3,.8,'Survive 3 days against a few gentle hunters'],
+['normal','Normal',1,1,1,1,5,1,'Survive 5 days'],
+['hard','Hard',1.5,1.3,1.15,1.5,7,2,'Survive 7 days against many hunters and tanks'],
+['nightmare','Nightmare',2.2,1.7,1.35,2.2,10,3.5,'Survive 10 days. The island wants you gone'],
+['endless','Endless',1,1,1,1,1e9,1.5,'No finish line. Every day is worse than the last']
+].map(a=>({id:a[0],n:a[1],hm:a[2],dm:a[3],hd:a[4],tm:a[5],days:a[6],c:a[7],d:a[8]}));
+const AB=[
+['swift','Swift Claws','Move 15% faster',50],
+['hide','Thick Hide','Take 15% less damage',70],
+['belly','Big Belly','Hunger drains 20% slower',70],
+['jaw','Iron Jaw','Bites hit tanks twice as hard',90],
+['neck','Long Neck','Bite reaches 30% farther',60],
+['quick','Quick Bite','Bite cooldown 30% shorter',80],
+['berry','Berry Lover','Berries feed you 50% more',60],
+['meat','Meat Lover','Humans feed you 50% more',80],
+['regen','Regeneration','Always heal 2 HP per second',150],
+['lungs','Sprint Lungs','Sprinting burns less food',90],
+['vision','Night Eyes','Bigger glow of light at night',100],
+['compass','Berry Nose','An arrow points to the nearest berries',70],
+['camo','Camouflage','Hunters start shooting from 25% closer',130],
+['tail','Spiked Tail','Auto-kills hunters touching you',200],
+['magnet','Fossil Hunter','Earn 30% more coins',120],
+['tankb','Tank Buster','Tank shells hurt 50% less',140],
+['scales','Bullet Scales','Bullets hurt 40% less',120],
+['mega','Mega Size','Max health 140',160],
+['frenzy','Blood Frenzy','Speed boost after eating a human',110],
+['garden','Berry Garden','Bushes regrow twice as fast',100],
+['wind','Second Wind','Revive once per run at half health',300],
+['dash','Dash (Q)','Burst of speed, 4s cooldown',180],
+['roar','Thunder Roar (R)','Freeze all enemies for 4s, 25s cooldown',260],
+['fire','Fire Breath (F)','Fireball kills hunters and hurts tanks, 3s cooldown',280],
+['quake','Earthquake (E)','Shockwave wipes out nearby enemies, 30s cooldown',350],
+['pack','Call Your Friends (Z)','Summon 4 friendly dinosaurs for 30s, 50s cooldown',400],
+['herd','Stampede (X)','Summon 12 random friendly dinosaurs for 25s, 80s cooldown',900]
+].map(a=>({id:a[0],n:a[1],d:a[2],c:a[3]}));
+let SV={coins:120,own:[]};
+try{const s=JSON.parse(localStorage.getItem('lastrex3d'));if(s&&s.own)SV=s}catch(e){}
+const save=()=>{try{localStorage.setItem('lastrex3d',JSON.stringify(SV))}catch(e){}};
+const H=id=>SV.own.includes(id);
+
+// ---------- three.js setup
+const ren=new THREE.WebGLRenderer({antialias:true});ren.setPixelRatio(Math.min(devicePixelRatio,2));ren.shadowMap.enabled=true;ren.toneMapping=THREE.ACESFilmicToneMapping;ren.toneMappingExposure=1.25;document.body.prepend(ren.domElement);
+const scn=new THREE.Scene(),cam=new THREE.PerspectiveCamera(55,1,.5,400);
+scn.fog=new THREE.Fog(0x87c4e0,60,240);
+function rs(){ren.setSize(innerWidth,innerHeight);cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix()}addEventListener('resize',rs);rs();
+const amb=new THREE.HemisphereLight(0xffffff,0x446644,.9),sun=new THREE.DirectionalLight(0xfff2cc,.8),glow=new THREE.PointLight(0xffe8b0,0,45);
+sun.position.set(30,60,20);sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);Object.assign(sun.shadow.camera,{left:-60,right:60,top:60,bottom:-60,near:1,far:200});scn.add(amb,sun,sun.target,glow);
+const tc=document.createElement('canvas');tc.width=tc.height=256;const tx=tc.getContext('2d');tx.fillStyle='#2f6b2c';tx.fillRect(0,0,256,256);
+for(let i=0;i<260;i++){tx.fillStyle=i%2?'#3a7d35':'#285d27';tx.beginPath();tx.ellipse(R(0,256),R(0,256),R(3,10),R(2,5),0,0,6.3);tx.fill()}
+const tex=new THREE.CanvasTexture(tc);tex.wrapS=tex.wrapT=THREE.RepeatWrapping;tex.repeat.set(52,38);
+const gr=new THREE.Mesh(new THREE.PlaneGeometry(MW,MH),new THREE.MeshLambertMaterial({map:tex}));gr.rotation.x=-Math.PI/2;gr.position.set(MW/2,0,MH/2);gr.receiveShadow=true;scn.add(gr);
+const M=c=>new THREE.MeshLambertMaterial({color:c}),BM=(c,f)=>new THREE.MeshBasicMaterial({color:c,fog:f});
+const SPH=new THREE.SphereGeometry(1,12,10),BOX=new THREE.BoxGeometry(1,1,1),CYL=new THREE.CylinderGeometry(1,1,1,10),CON=new THREE.ConeGeometry(1,1,10),RNG=new THREE.RingGeometry(.88,1,36);
+const mG=M(0x3aa655),mD=M(0x1f6b32),mB=M(0x8fd48a),mW=BM(0xffffff,true),mK=BM(0x111111,true),mKh=M(0x8a7a4a),mSk=M(0xd8b38a),mDk=M(0x222222),mOl=M(0x4b5320),mOd=M(0x2e3314),mLamp=BM(0xff2a10,false),mBush=M(0x14501d),mBark=M(0x5a3a1e),mLeaf=M(0x1d5a22),mFire=BM(0xff7a1a,true),mBul=BM(0xffd966,true),mShell=M(0x222222),mRing=new THREE.MeshBasicMaterial({color:0xff3b30,side:2});
+const P=(g,m,x,y,z,sx,sy,sz)=>{const o=new THREE.Mesh(g,m);o.castShadow=true;o.position.set(x,y,z);o.scale.set(sx,sy||sx,sz||sx);return o};
+const flat=(m,x,z,r)=>{const o=new THREE.Mesh(RNG,m);o.rotation.x=-Math.PI/2;o.position.set(x,.15,z);o.scale.set(r,r,r);return o};
+const fxm={},fm=c=>fxm[c]||(fxm[c]=BM(c,true));
+const treesG=new THREE.Group();scn.add(treesG);
+for(let i=0;i<300;i++){const x=R(0,MW),z=R(0,MH),s=R(3.5,6);treesG.add(P(CYL,mBark,x,3,z,.8,6,.8),P(SPH,mLeaf,x,8,z,s,s*.8,s))}
+const mkDino=()=>{const g=new THREE.Group();
+ g.add(P(SPH,mG,0,3.4,0,3.6,2.5,2.4),P(SPH,mB,.6,2.9,0,2.8,1.6,2),P(SPH,mG,4,4.6,0,1.8,1.6,1.5),P(BOX,mG,5.6,4.6,0,2.4,.7,1.4));
+ const t=P(CON,mD,-5.8,3,0,1.4,6,1.4);t.rotation.z=Math.PI/2;g.add(t);
+ for(const z of[-1.6,1.6])g.add(P(CYL,mD,-.5,1,z,.7,2,.7),P(SPH,mW,4.7,5.3,z/2,.3),P(SPH,mK,4.95,5.3,z/2,.15));
+ for(const x of[-2,0,2])g.add(P(CON,mD,x,5.9,0,.6,1.2,.6));
+ const j=new THREE.Group();j.position.set(4.6,4.15,0);j.add(P(BOX,mG,1.2,0,0,2.4,.5,1.2));g.add(j);g.jaw=j;return g};
+const world0=()=>new THREE.Group();let world=world0();scn.add(world);
+const mSn=M(0x2d4a2d),mJp=M(0x6b7a3a),HC={r:mKh,s:mSn,g:M(0x7a3b2e),f:M(0xd2691e),m:M(0x555555),k:M(0x111111),e:M(0xeeeeee),d:M(0x4a6b3a),ws:M(0x2f7fb0),ck:M(0x9fd8f0),el:M(0xe0d040),tp:M(0x6a4a2a),bm:M(0xb02020),rk:M(0x8a2e8a),mr:M(0x667744),jg:M(0x3a3a4a),sc:M(0x2a7a6a),cm:M(0xc0a030),nt:M(0x888888)},mWat=BM(0x4aa3df,true),mIce=BM(0xcfefff,true),mEl=BM(0xfff04a,true),mNet=BM(0xcccccc,true);
+const HT={r:{stop:24,sp:7,rg:42,c1:1.2,c2:1.9,n:1,ac:.14,bs:40,bl:1.4,dm:7,hp:1},s:{stop:55,sp:6,rg:75,c1:3,c2:4,n:1,ac:.03,bs:90,bl:1.3,dm:16,hp:1},j:{stop:18,sp:20,rg:45,c1:2.2,c2:3,n:3,ac:.25,bs:42,bl:1.3,dm:5,hp:3},g:{stop:40,sp:6,rg:60,c1:3.5,c2:4.5,n:1,ac:0,bs:0,bl:1,dm:26,hp:1,lob:1,rad:5},f:{stop:7,sp:12,rg:13,c1:.15,c2:.15,n:1,ac:.2,bs:26,bl:.5,dm:2.5,hp:2},m:{stop:30,sp:5,rg:50,c1:2.2,c2:2.8,n:4,ac:.18,bs:45,bl:1.2,dm:4,hp:2},k:{stop:20,sp:16,rg:45,c1:.8,c2:1.2,n:1,ac:.1,bs:55,bl:1.2,dm:6,hp:1},e:{stop:30,sp:7,rg:30,c1:2.5,c2:3,n:1,ac:.1,bs:40,bl:1,dm:4,hp:1},d:{stop:26,sp:7,rg:40,c1:1.5,c2:2,n:1,ac:.1,bs:40,bl:1.4,dm:6,hp:1},dg:{stop:3,sp:26,rg:4.5,c1:.6,c2:.6,n:1,ac:0,bs:0,bl:0,dm:6,hp:1},
+ft:{stop:14,sp:4,rg:20,c1:.12,c2:.12,n:2,ac:.22,bs:28,bl:.7,dm:2.5,hp:6,fx:'burn',mt:mFire},
+ws:{stop:20,sp:8,rg:28,c1:.1,c2:.1,n:1,ac:.12,bs:45,bl:.8,dm:1.5,hp:1,fx:'slow',mt:mWat},
+ck:{stop:28,sp:7,rg:42,c1:2,c2:2.6,n:1,ac:.05,bs:50,bl:1,dm:5,hp:1,fx:'freeze',mt:mIce},
+el:{stop:24,sp:8,rg:34,c1:2.2,c2:3,n:1,ac:.04,bs:70,bl:.8,dm:6,hp:1,fx:'shock',mt:mEl},
+tp:{stop:30,sp:8,rg:60,c1:5,c2:6,n:1,ac:0,bs:0,bl:0,dm:0,hp:1},
+bm:{stop:0,sp:15,rg:6,c1:.2,c2:.2,n:1,ac:0,bs:0,bl:0,dm:0,hp:1},
+rk:{stop:45,sp:5,rg:70,c1:5,c2:6,n:1,ac:0,bs:0,bl:0,dm:38,hp:1,lob:1,rad:8},
+mr:{stop:75,sp:5,rg:100,c1:6.5,c2:7.5,n:1,ac:0,bs:0,bl:0,dm:32,hp:1,lob:1,rad:10},
+jg:{stop:18,sp:5,rg:36,c1:.9,c2:1.2,n:2,ac:.12,bs:45,bl:1,dm:5,hp:6},
+sc:{stop:14,sp:24,rg:30,c1:1.2,c2:1.6,n:1,ac:.1,bs:55,bl:1,dm:5,hp:1},
+cm:{stop:32,sp:6,rg:45,c1:1.8,c2:2.4,n:1,ac:.06,bs:60,bl:1.1,dm:8,hp:2},
+nt:{stop:30,sp:7,rg:40,c1:3.5,c2:4.5,n:1,ac:.05,bs:55,bl:1,dm:3,hp:1,fx:'net',mt:mNet}};
+const mkH=(x,z,t='r')=>{const g=new THREE.Group();
+ if(t=='ft')g.add(P(BOX,mOl,0,1.5,0,6,2,4),P(BOX,mOd,0,.9,-2.3,6.4,1.4,.8),P(BOX,mOd,0,.9,2.3,6.4,1.4,.8),P(CYL,mOl,0,3,0,1.4,.9,1.4),P(BOX,mFire,3.4,3.1,0,3.4,.5,.5));else if(t=='dg')g.add(P(BOX,mBark,0,1.1,0,2.4,.9,.8),P(SPH,mBark,1.5,1.5,0,.6),P(BOX,mBark,-1.3,1.4,0,1.2,.2,.2),P(BOX,mDk,.7,.4,.3,.3,.8,.3),P(BOX,mDk,-.7,.4,-.3,.3,.8,.3));else if(t=='j')g.add(P(BOX,mJp,0,1.6,0,5,1.4,3),P(BOX,mJp,-1,2.6,0,2,1.2,2.4),P(BOX,mDk,1.5,1,-1.7,1.6,1.6,.5),P(BOX,mDk,-1.5,1,-1.7,1.6,1.6,.5),P(BOX,mDk,1.5,1,1.7,1.6,1.6,.5),P(BOX,mDk,-1.5,1,1.7,1.6,1.6,.5),P(SPH,mSk,-1,4,0,.55),P(BOX,mDk,.5,3.4,0,2.2,.25,.25));
+ else g.add(P(CYL,HC[t]||mKh,0,1.7,0,.6,2.4,.5),P(SPH,mSk,0,3.5,0,.55),P(BOX,mDk,1,2.2,0,t=='s'?3:t=='m'?2.6:1.6,.25,.25));
+ g.position.set(x,0,z);if(t=='jg')g.scale.setScalar(1.4);if(t=='cm')g.scale.setScalar(1.2);world.add(g);return{x,z,a:0,cd:R(.5,1.5),o:g,t,...HT[t]}};
+function mkTrap(x,z,ty){x=cl(x,3,MW-3);z=cl(z,3,MH-3);ty=ty||['b','b','n','m'][Math.floor(Math.random()*4)];const o=new THREE.Group();o.add(P(CYL,ty=='n'?mNetT:ty=='m'?mMine:mDk,0,.15,0,ty=='m'?1.2:1.8,.15,ty=='m'?1.2:1.8),flat(mRing,0,0,2.2));o.position.set(x,0,z);world.add(o);S.traps.push({x,z,o,ty})}
+const mNetT=M(0xbbbbbb),mMine=M(0x8a1a1a);
+function status(f){const p=S.p;if(f=='slow')p.slow=1.5;else if(f=='freeze')p.slow=3;else if(f=='net')p.slow=3.5;else if(f=='shock'){p.st=Math.max(0,p.st-45);if(p.st<=0)p.ex=1}else if(f=='burn')p.burn=3}
+const DT=[
+{id:'raptor',n:'Raptor',c:0xb5651d,s:.5,hp:45,sp:24,dm:8},
+{id:'trike',n:'Triceratops',c:0x6b8e4e,s:1,hp:170,sp:11,dm:20,ar:.8,ch:1},
+{id:'stego',n:'Stegosaurus',c:0x7a9a3a,s:.95,hp:140,sp:10,dm:15,ar:.8},
+{id:'anky',n:'Ankylosaurus',c:0x8a7a5a,s:.9,hp:160,sp:9,dm:14,ar:.5},
+{id:'brach',n:'Brachiosaurus',c:0x5a8a8a,s:1.5,hp:260,sp:7,dm:12,stomp:1},
+{id:'spino',n:'Spinosaurus',c:0x2a6a9a,s:1.1,hp:130,sp:14,dm:22},
+{id:'ptero',n:'Pterodactyl',c:0xa05a7a,s:.55,hp:35,sp:26,dm:9,fly:1},
+{id:'dilo',n:'Dilophosaurus',c:0xc0a020,s:.7,hp:70,sp:13,dm:10,spit:1},
+{id:'carno',n:'Carnotaurus',c:0xb03020,s:1.05,hp:140,sp:15,dm:21,ch:1},
+{id:'pachy',n:'Pachycephalosaurus',c:0x8a4a9a,s:.7,hp:90,sp:15,dm:12,stn:1,ch:1},
+{id:'compy',n:'Compsognathus',c:0x40a0a0,s:.3,hp:12,sp:20,dm:5},
+{id:'giga',n:'Giganotosaurus',c:0x333333,s:1.4,hp:320,sp:13,dm:28,rr:1}];
+function mkDt(d){const o=mkDino(),cm=M(d.c);o.traverse(m=>{if(m.material===mG)m.material=cm});o.scale.setScalar(d.s*1.1);if(d.fly)o.add(P(BOX,cm,0,5.5,3.8,1.5,.2,4),P(BOX,cm,0,5.5,-3.8,1.5,.2,4));world.add(o);return o}
+function spawnAD(n,ttl){const p=S.p;for(let i=0;i<n;i++){const d=DT[Math.floor(Math.random()*DT.length)],a=R(0,6.28),r=R(8,16);S.ad.push({d,x:cl(p.x+Math.cos(a)*r,3,MW-3),z:cl(p.z+Math.sin(a)*r,3,MH-3),o:mkDt(d),ttl,cd:R(0,.9)})}boom(p.x,3,p.z)}
+function nearD(){const p=S.p;let b=S.dn,bq=Math.hypot(b.x-p.x,b.z-p.z);for(const e of S.dx){const q=Math.hypot(e.x-p.x,e.z-p.z);if(q<bq-.1){bq=q;b=e}}return b}
+const NEWT=[['sc',2],['ws',2],['jg',3],['el',3],['tp',3],['ck',4],['cm',4],['rk',4],['nt',5],['bm',5],['ft',6],['mr',6]];
+function pickT(d){const r=Math.random();if(d>=2&&Math.random()<Math.min(.35,.06*d)){const L=NEWT.filter(x=>x[1]<=d);return L[Math.floor(Math.random()*L.length)][0]}if(d>=5&&r<.08)return'm';if(d>=3&&r>.93)return'd';if(d>=2&&r>.85)return'e';if(d>=4&&r<.16)return'f';if(d>=3&&r<.26)return'j';if(d>=2){if(r<.38)return's';if(r<.5)return'g';if(r<.62)return'k'}return'r'}
+function shoot(h,aa){if(h.t=='bm'){hurt(30);boom(h.x,2,h.z);killH(h,0);return}if(h.t=='tp'){const p=S.p;mkTrap(p.x+R(-6,6),p.z+R(-6,6));mkTrap(p.x+R(-12,12),p.z+R(-12,12));return}if(h.t=='dg'){hurt(6);splat(S.p.x,2,S.p.z,0xc0392b);return}if(h.lob){const p=S.p,tx=p.x,tz=p.z,T=Math.hypot(tx-h.x,tz-h.z)/28+.4,r=flat(mRing,tx,tz,h.rad),o=P(SPH,mShell,h.x,3,h.z,.7);world.add(r,o);S.shell.push({x:h.x,z:h.z,tx,tz,t:0,T,o,r,dm:h.dm,rad:h.rad});return}const o=P(SPH,h.mt||mBul,h.x,2.5,h.z,.4);world.add(o);S.bul.push({o,x:h.x,z:h.z,vx:Math.cos(aa)*h.bs,vz:Math.sin(aa)*h.bs,l:h.bl,d:h.dm,fx:h.fx})}
+const mkT=(x,z)=>{const g=new THREE.Group();g.add(P(BOX,mOl,0,1.5,0,7,2,5),P(BOX,mOd,0,.9,-2.8,7.4,1.6,1),P(BOX,mOd,0,.9,2.8,7.4,1.6,1),P(CYL,mOl,0,3,0,1.8,1,1.8),P(BOX,mOd,3.6,3.1,0,5,.5,.5),P(SPH,mLamp,-1,4.4,0,.6));g.position.set(x,0,z);world.add(g);return{x,z,a:0,hp:10,cd:R(1.5,3),o:g}};
+const mkBush=(x,z)=>{const g=new THREE.Group(),bg=new THREE.Group();g.add(P(SPH,mBush,0,1.2,0,2.4,1.8,2.4));
+ for(let i=0;i<6;i++)bg.add(P(SPH,i%2?M(0x8e44ad):M(0xc0392b),Math.cos(i*1.1)*1.6,1.9+Math.sin(i*2)*.4,Math.sin(i*1.1)*1.6,.45));
+ g.add(bg);g.position.set(x,0,z);world.add(g);return{x,z,on:1,rt:0,bg}};
+
+// ---------- state
+let S,cur=DIFF[1],run=false,last=0,night=0;const K={};
+const around=r=>{const a=R(0,6.28);return{x:cl(S.p.x+Math.cos(a)*r,3,MW-3),z:cl(S.p.z+Math.sin(a)*r,3,MH-3)}};
+function fx(x,y,z,c,n,v){for(let i=0;i<n;i++){const o=P(SPH,fm(c[i%c.length]),x,y,z,R(.2,.6));world.add(o);S.fx.push({o,vx:R(-v,v),vy:R(0,v),vz:R(-v,v),l:R(.4,1)})}}
+const splat=(x,y,z,c)=>fx(x,y,z,[c],8,12),boom=(x,y,z)=>fx(x,y,z,[0xffb347,0xd9483b,0x444444],22,22);
+function init(mode){mode=mode||'dino';
+  scn.remove(world);world=world0();scn.add(world);
+  const mh=Math.max(40,(H('mega')?140:100)+adv('hp')),p={x:MW/2,z:MH/2,a:0,hp:mh,mh,hu:100,st:100,sd:0,slow:0,ex:0,cd:0,bite:0,fr:0,dash:0,tail:0,wind:0,mv:0,o:mkMy()};
+  world.add(p.o);
+  const arr=new THREE.Group(),cn=P(CON,mFire,0,0,0,.8,3,.8);cn.rotation.z=-Math.PI/2;arr.add(cn);arr.visible=false;world.add(arr);
+  S={t:0,traps:[],ad:[],dx:[],p,arr,bush:[],hum:[],tanks:[],bul:[],shell:[],fb:[],fx:[],rings:[],kills:0,berries:0,hs:0,nd:0,stun:0,cdn:{q:0,r:0,f:0,e:0,z:0,x:0},btn:{}};
+  for(let i=0;i<150;i++)S.bush.push(mkBush(R(6,MW-6),R(6,MH-6)));for(let i=0;i<60;i++)mkTrap(R(10,MW-10),R(10,MH-10));
+  night=0;$('ab').innerHTML='';S.mode=mode;$('hl').textContent=mode=='dino'?'Hunger':'Dino HP';$('sp').style.display=mode=='mp'?'block':'none';$('hud').style.visibility=mode=='mp'?'hidden':'visible';if(mode!='dino')initH(mode);
+  for(const[k,id]of[['q','dash'],['r','roar'],['f','fire'],['e','quake'],['z','pack'],['x','herd']])if(mode=='dino'&&H(id)){const b=document.createElement('button');b.textContent=k.toUpperCase();b.onclick=()=>useAb(k);S.btn[k]=b;$('ab').append(b)}
+}
+function killH(h,eat){if(h.dead)return;h.dead=1;world.remove(h.o);S.kills++;splat(h.x,2,h.z,0xb3261e);
+  if(eat){const p=S.p;p.hu=Math.min(100,p.hu+28*(H('meat')?1.5:1)*(1+adv('mf')/100));p.hp=Math.min(p.mh,p.hp+8);if(H('frenzy'))p.fr=4}}
+function hitT(k,n){if(k.dead)return;k.hp-=n;splat(k.x,3,k.z,0xffb347);if(k.hp<=0){k.dead=1;world.remove(k.o);S.kills+=3;boom(k.x,2,k.z)}}
+function bite(){if(!run||paused||S.mode!='dino')return;const p=S.p;if(p.cd>0)return;p.cd=.4*(H('quick')?.7:1)*(1-adv('qb')/100);p.bite=.22;const rg=9*(H('neck')?1.3:1)*(1+adv('bt')/100);
+  for(const h of S.hum)if(Math.hypot(h.x-p.x,h.z-p.z)<rg){if(h.hp>1){h.hp--;splat(h.x,2,h.z,0xb3261e)}else killH(h,1)}
+  for(const k of S.tanks)if(Math.hypot(k.x-p.x,k.z-p.z)<rg+4)hitT(k,H('jaw')?2:1)}
+function useAb(k){const id={q:'dash',r:'roar',f:'fire',e:'quake',z:'pack',x:'herd'}[k];if(!run||paused||S.mode!='dino'||!H(id)||S.cdn[k]>0)return;const p=S.p;
+  if(k=='q'){if(p.st<30)return;p.st-=30;S.cdn.q=4*(1-adv('dc')/100);p.dash=.25}
+  if(k=='z'){S.cdn.z=50;spawnAD(4,30)}
+  if(k=='x'){S.cdn.x=80;spawnAD(12,25)}
+  if(k=='r'){S.cdn.r=25;S.stun=4;boom(p.x,4,p.z)}
+  if(k=='f'){S.cdn.f=3;const c=Math.cos(p.a),s=Math.sin(p.a),o=P(SPH,mFire,p.x+c*6,3.5,p.z+s*6,1.2);world.add(o);S.fb.push({o,x:p.x+c*6,z:p.z+s*6,vx:c*55,vz:s*55,l:1.3})}
+  if(k=='e'){S.cdn.e=30;const o=flat(mQuake,p.x,p.z,1);world.add(o);S.rings.push({o,t:0,x:p.x,z:p.z});
+    for(const h of S.hum)if(Math.hypot(h.x-p.x,h.z-p.z)<26)killH(h,0);for(const t of S.tanks)if(Math.hypot(t.x-p.x,t.z-p.z)<26)hitT(t,3)}}
+const mQuake=new THREE.MeshBasicMaterial({color:0xffb347,side:2});
+function hurt(n){S.p.hp-=n*cur.dm*(H('hide')?.85:1)*(1-adv('ar')/100)}
+
+function update(dt){if(S.mode&&S.mode!='dino')return updateH(dt);
+  const p=S.p,D=cur,ph=S.t%CYC,isN=ph>=DAYL,day=Math.floor(S.t/CYC)+1;
+  S.t+=dt;if(S.t>=D.days*CYC)return end(true);
+  night+=((isN?1:0)-night)*Math.min(1,dt*1.5);
+  let dx=(K.KeyD||K.ArrowRight?1:0)-(K.KeyA||K.ArrowLeft?1:0),dz=(K.KeyS||K.ArrowDown?1:0)-(K.KeyW||K.ArrowUp?1:0);
+  if(joy){dx+=joy.dx;dz+=joy.dy}
+  const m=Math.hypot(dx,dz),spr=(K.ShiftLeft||K.ShiftRight||(joy&&m>.95))&&m>0&&!p.ex;
+  if(m>0)p.a=Math.atan2(dz,dx);if(spr){p.st-=22*dt;p.sd=.7;if(p.st<=0){p.st=0;p.ex=1}}else{p.sd-=dt;if(p.sd<=0){p.st=Math.min(100,p.st+20*(1+adv('sr')/100)*dt);if(p.ex&&p.st>=25)p.ex=0}}
+  if(p.burn>0){p.burn-=dt;hurt(4*dt)}p.fr-=dt;p.slow-=dt;p.dash-=dt;p.cd-=dt;p.bite-=dt;S.stun-=dt;for(const k in S.cdn)S.cdn[k]-=dt;
+  const sp=(spr?30*(1+adv('ss')/100):19.5)*(1+adv('sp')/100)*(H('swift')?1.15:1)*(p.fr>0?1.3:1)*(p.dash>0?3.5:1)*(p.slow>0?.35:1);
+  p.mv=m>0||p.dash>0;
+  if(p.mv){const ux=p.dash>0?Math.cos(p.a):dx/Math.max(1,m),uz=p.dash>0?Math.sin(p.a):dz/Math.max(1,m);p.x=cl(p.x+ux*sp*dt,2,MW-2);p.z=cl(p.z+uz*sp*dt,2,MH-2)}
+  p.hu-=(spr?(H('lungs')?2.4:3.4):1.5)*D.hd*(H('belly')?.8:1)*(1-adv('bl')/100)*dt;
+  p.hp=Math.min(p.mh,p.hp+adv('rg')*dt);if(p.hu<=0){p.hu=0;p.hp-=6*dt}else if(H('regen')||p.hu>55)p.hp=Math.min(p.mh,p.hp+2*dt);
+  for(const b of S.bush){if(b.on){if(Math.hypot(b.x-p.x,b.z-p.z)<4.8*(1+adv('fm')/100)){b.on=0;b.bg.visible=false;b.rt=H('garden')?11:22;p.hu=Math.min(100,p.hu+16*(H('berry')?1.5:1)*(1+adv('bf')/100));S.berries++;splat(b.x,1.5,b.z,0x8e44ad)}}else if((b.rt-=dt)<=0){b.on=1;b.bg.visible=true}}
+  S.ts=(S.ts||0)-dt;if(S.ts<=0){S.ts=2.5;if(S.traps.length<80){const s=around(R(15,140));mkTrap(s.x,s.z)}}
+  for(const t of S.traps)if(Math.hypot(t.x-p.x,t.z-p.z)<2.4){t.d=1;world.remove(t.o);const tr=1-adv('tr')/100;if(t.ty=='m'){hurt(25*tr);boom(t.x,1,t.z)}else{p.slow=(t.ty=='n'?4:2)*tr;hurt((t.ty=='n'?2:10)*tr)}splat(p.x,1,p.z,0xc0392b)}
+  S.traps=S.traps.filter(t=>!t.d);
+  S.hs-=dt;const tg=Math.min(26,Math.round((4+day*2.5)*D.hm));
+  if(S.hs<=0){S.hs=1.5;if(S.hum.length<tg){const s=around(R(75,95));{const t=pickT(day);S.hum.push(mkH(s.x,s.z,t));if(t=='d')for(let i=0;i<2;i++)S.hum.push(mkH(s.x+i*3,s.z+3,'dg'))}}}
+  if(isN&&S.nd<day){S.nd=day;const n=Math.max(1,Math.round(Math.min(6,day)*D.tm));for(let i=0;i<n;i++){const s=around(R(80,105));S.tanks.push(mkT(s.x,s.z))}}
+  if(!isN&&S.tanks.length){for(const k of S.tanks){boom(k.x,2,k.z);world.remove(k.o)}S.tanks=[]}
+  const st=S.stun>0,rg=42*(H('camo')?.75:1);
+  for(const h of S.hum){if(st)continue;const ex=p.x-h.x,ez=p.z-h.z,d=Math.hypot(ex,ez),a=Math.atan2(ez,ex);h.a=a;
+    if(d>h.stop){const s2=d>80?h.sp*2:h.sp;h.x+=Math.cos(a)*s2*dt;h.z+=Math.sin(a)*s2*dt}
+    h.cd-=dt;if(h.cd<=0&&d<h.rg*(H('camo')?.75:1)*(1-adv('sl')/100)){h.cd=R(h.c1,h.c2);for(let i=0;i<h.n;i++)shoot(h,a+R(-h.ac,h.ac))}
+    if(h.t=='cm'){for(const o of S.hum)if(o!==h&&Math.hypot(o.x-h.x,o.z-h.z)<25)o.cd-=dt}
+    if(h.t=='e'){h.hc=(h.hc||0)-dt;if(h.hc<=0){h.hc=3;for(const o of S.hum)if(o!==h&&!o.dead&&o.hp<HT[o.t].hp&&Math.hypot(o.x-h.x,o.z-h.z)<16){o.hp++;splat(o.x,3,o.z,0x7fc15a)}}}
+    h.o.position.set(h.x,0,h.z);h.o.rotation.y=-a}
+  for(const k of S.tanks){if(st)continue;const ex=p.x-k.x,ez=p.z-k.z,d=Math.hypot(ex,ez),a=Math.atan2(ez,ex);k.a=a;
+    if(d>38){k.x+=Math.cos(a)*4.8*dt;k.z+=Math.sin(a)*4.8*dt}
+    k.cd-=dt;if(k.cd<=0&&d<70){k.cd=3.4;const tx=cl(p.x+dx*6,2,MW-2),tz=cl(p.z+dz*6,2,MH-2),T=Math.hypot(tx-k.x,tz-k.z)/30,r=flat(mRing,tx,tz,7.5),o=P(SPH,mShell,k.x,3,k.z,1);world.add(r,o);S.shell.push({x:k.x,z:k.z,tx,tz,t:0,T,o,r})}
+    k.o.position.set(k.x,0,k.z);k.o.rotation.y=-a}
+  S.hum=S.hum.filter(h=>!h.dead);S.tanks=S.tanks.filter(k=>!k.dead);
+  for(const b of S.bul){b.x+=b.vx*dt;b.z+=b.vz*dt;b.l-=dt;b.o.position.set(b.x,2.5,b.z);if(Math.hypot(b.x-p.x,b.z-p.z)<2.8){b.l=0;hurt(b.d*(H('scales')?.6:1));splat(p.x,3,p.z,0xc0392b);if(b.fx)status(b.fx)}}
+  S.bul=S.bul.filter(b=>{if(b.l<=0)world.remove(b.o);return b.l>0});
+  for(const s of S.shell){s.t+=dt;const f=Math.min(1,s.t/s.T);s.o.position.set(s.x+(s.tx-s.x)*f,3+Math.sin(f*Math.PI)*14,s.z+(s.tz-s.z)*f);
+    if(s.t>=s.T){s.done=1;world.remove(s.o,s.r);boom(s.tx,2,s.tz);if(Math.hypot(s.tx-p.x,s.tz-p.z)<(s.rad||7.5))hurt((s.dm||32)*(H('tankb')?.5:1))}}
+  S.shell=S.shell.filter(s=>!s.done);
+  for(const f of S.fb){f.x+=f.vx*dt;f.z+=f.vz*dt;f.l-=dt;f.o.position.set(f.x,3.5,f.z);
+    for(const h of S.hum)if(Math.hypot(h.x-f.x,h.z-f.z)<3.5){killH(h,0);f.l=0}
+    for(const k of S.tanks)if(Math.hypot(k.x-f.x,k.z-f.z)<5){hitT(k,3);boom(f.x,3,f.z);f.l=0}}
+  S.fb=S.fb.filter(f=>{if(f.l<=0)world.remove(f.o);return f.l>0});
+  S.hum=S.hum.filter(h=>!h.dead);S.tanks=S.tanks.filter(k=>!k.dead);
+  S.ad.forEach(a=>{let t=null,bd=1e9;for(const h of S.hum){const q=Math.hypot(h.x-a.x,h.z-a.z);if(q<bd){bd=q;t=h}}for(const k of S.tanks){const q=Math.hypot(k.x-a.x,k.z-a.z);if(q<bd){bd=q;t=k}}
+   const ex=t?t.x-a.x:p.x-a.x-8,ez=t?t.z-a.z:p.z-a.z,dd=Math.max(Math.hypot(ex,ez),1),sp=a.d.sp*(t?1:.7);if(dd>(t?6:10)){a.x+=ex/dd*sp*dt;a.z+=ez/dd*sp*dt}
+   a.o.position.set(a.x,(a.d.fly?7:0)+Math.abs(Math.sin(S.t*12+a.x))*.4,a.z);a.o.rotation.y=-Math.atan2(ez,ex);a.cd-=dt;a.o.jaw.rotation.z=a.cd>.6?-.6:0;
+   if(t&&dd<8*a.d.s+3&&a.cd<=0){a.cd=.9;if(t.t===undefined)hitT(t,Math.max(1,Math.round(a.d.dm/10)));else killH(t,0)}
+   if((a.ttl-=dt)<=0){boom(a.x,2,a.z);world.remove(a.o);a.dead=1}});S.ad=S.ad.filter(a=>!a.dead);
+  if(H('tail')){p.tail-=dt;if(p.tail<=0){let n=0;for(const h of S.hum)if(Math.hypot(h.x-p.x,h.z-p.z)<6){killH(h,0);n++}if(n)p.tail=2;S.hum=S.hum.filter(h=>!h.dead)}}
+  for(const r of S.rings){r.t+=dt;r.o.scale.setScalar(1+r.t*50);r.o.material.opacity=1}
+  S.rings=S.rings.filter(r=>{if(r.t>.5)world.remove(r.o);return r.t<=.5});
+  for(const f of S.fx){f.o.position.x+=f.vx*dt;f.o.position.y=Math.max(.1,f.o.position.y+f.vy*dt);f.o.position.z+=f.vz*dt;f.vy-=30*dt;f.l-=dt}
+  S.fx=S.fx.filter(f=>{if(f.l<=0)world.remove(f.o);return f.l>0});
+  if(p.hp<=0){if(H('wind')&&!p.wind){p.wind=1;p.hp=p.mh*.5;p.hu=Math.max(p.hu,50);S.stun=3;boom(p.x,4,p.z)}else end(false)}
+  $('hu').style.width=p.hu+'%';$('stb').style.width=p.st+'%';$('hp').style.width=Math.max(0,p.hp/p.mh*100)+'%';
+  $('clock').textContent=cur.n+', day '+day+(isN?', night: tanks out':', daylight');
+  $('sc').textContent='Eaten '+S.kills+', berries '+S.berries;
+  for(const k in S.btn){const c=S.cdn[k];S.btn[k].textContent=c>0?Math.ceil(c):k.toUpperCase();S.btn[k].style.opacity=c>0?.5:1}
+}
+const colD=new THREE.Color(0x87c4e0),colN=new THREE.Color(0x040816),col=new THREE.Color(),tv=new THREE.Vector3();
+function draw(dt){if(S.mode&&S.mode!='dino')return drawH(dt);
+  const p=S.p;
+  col.lerpColors(colD,colN,night);scn.background=col;scn.fog.color.copy(col);
+  scn.fog.near=60-night*35;scn.fog.far=240-night*(150-(H('vision')?55:0));
+  amb.intensity=.9-.78*night;sun.intensity=.8-.75*night;glow.intensity=night*1.5;glow.distance=H('vision')?75:45;glow.position.set(p.x,12,p.z);sun.position.set(p.x+30,60,p.z+20);sun.target.position.set(p.x,0,p.z);
+  p.o.position.set(p.x,p.mv?Math.abs(Math.sin(S.t*14))*.4:0,p.z);p.o.rotation.y=-p.a;p.o.jaw.rotation.z=p.bite>0?-.6:0;
+  tv.set(p.x,27,p.z+25);cam.position.lerp(tv,1-Math.exp(-6*dt));cam.lookAt(p.x,0,p.z-1);
+  let bb=null,bd=1e9;if(H('compass'))for(const b of S.bush)if(b.on){const d=Math.hypot(b.x-p.x,b.z-p.z);if(d<bd){bd=d;bb=b}}
+  S.arr.visible=!!bb;if(bb){S.arr.position.set(p.x,10,p.z);S.arr.rotation.y=-Math.atan2(bb.z-p.z,bb.x-p.x)}
+}
+function end(win){
+  run=false;const day=Math.floor(S.t/CYC),earn=Math.round((S.kills*3+S.berries+day*25+(win?150:0))*cur.c*(H('magnet')?1.3:1)*(1+adv('cn')/100));
+  SV.coins+=earn;save();
+  $('m').textContent=(win?'You survived the island! ':'You went extinct. ')+'Days survived: '+day+'. Humans eaten or killed: '+S.kills+'. Berries: '+S.berries+'. You earned '+earn+' coins. Spend them in the shop.';
+  $('hud').hidden=true;$('ab').innerHTML='';$('ov').style.display='block';$('menu').hidden=false;$('shop').hidden=true;$('go').textContent='Play again';rd();
+}
+
+// ---------- input
+addEventListener('keydown',e=>{if(e.code=='Escape'){if(!$('gd').hidden)gback();else if(run)pause(!paused);return}K[e.code]=1;if(e.code=='Enter')e.preventDefault();if(e.code=='Space'){e.preventDefault();bite()}hk(e.code);const l={KeyQ:'q',KeyR:'r',KeyF:'f',KeyE:'e',KeyZ:'z',KeyX:'x'}[e.code];if(l)useAb(l)});
+addEventListener('keyup',e=>{K[e.code]=0;if(run&&(e.code=='Space'||e.code=='Enter'))e.preventDefault()});
+const cv=ren.domElement;let joy=null;
+cv.addEventListener('mousedown',bite);cv.addEventListener('mousedown',()=>K.M=1);addEventListener('mouseup',()=>K.M=0);cv.addEventListener('touchstart',e=>{for(const t of e.changedTouches)if(t.clientX>=innerWidth/2)K.M=1},{passive:true});cv.addEventListener('touchend',()=>K.M=0,{passive:true});
+cv.addEventListener('touchstart',e=>{for(const t of e.changedTouches){if(t.clientX<innerWidth/2){if(!joy){joy={id:t.identifier,x:t.clientX,y:t.clientY,dx:0,dy:0};const s=$('st');s.style.display='block';s.style.left=t.clientX-45+'px';s.style.top=t.clientY-45+'px'}}else bite()}},{passive:true});
+cv.addEventListener('touchmove',e=>{for(const t of e.changedTouches)if(joy&&t.identifier==joy.id){const dx=t.clientX-joy.x,dy=t.clientY-joy.y,d=Math.hypot(dx,dy)||1,m=Math.min(d,45)/45;joy.dx=dx/d*m;joy.dy=dy/d*m}},{passive:true});
+cv.addEventListener('touchend',e=>{for(const t of e.changedTouches)if(joy&&t.identifier==joy.id){joy=null;$('st').style.display='none'}},{passive:true});
+
+// ---------- menu and shop
+function rd(){$('modes').innerHTML=MODES.map(m=>`<button data-m='${m[0]}' class='${m[0]==gmode?'sel':''}'>${m[1]}</button>`).join('');$('md').textContent=MODES.find(m=>m[0]==gmode)[2];$('diffs').innerHTML=DIFF.map(d=>`<button data-d="${d.id}" class="${d===cur?'sel':''}">${d.n}</button>`).join('');$('dd').textContent=cur.d+'. Coin bonus x'+cur.c;$('coins').textContent=SV.coins}
+function rsh(){$('coins2').textContent=SV.coins;if(tab=='n')return rsn();if(tab=='c')return rcz();$('grid').innerHTML=LST().map(a=>{const o=H(a.id);return `<div class="card${o?' own':''}"><b>${a.n}</b><small>${a.d}</small><button data-id="${a.id}" ${o||SV.coins<a.c?'disabled':''}>${o?'Owned':'Buy for '+a.c}</button></div>`}).join('')}
+$('diffs').onclick=e=>{const b=e.target.closest('button');if(b){cur=DIFF.find(d=>d.id==b.dataset.d);rd()}};
+$('grid').onclick=e=>{const b=e.target.closest('button');if(!b||b.disabled)return;if(tab=='n'||tab=='c')return gclick(b);const a=LST().find(x=>x.id==b.dataset.id);if(SV.coins>=a.c&&!H(a.id)){SV.coins-=a.c;SV.own.push(a.id);save();rsh()}};
+$('shopb').onclick=()=>{$('menu').hidden=true;$('shop').hidden=false;rsh()};
+$('back').onclick=()=>{$('shop').hidden=true;$('menu').hidden=false;rd()};
+$('go').onclick=()=>{if(document.activeElement)document.activeElement.blur();init(gmode);run=true;paused=false;$('ov').style.display='none';$('hud').hidden=false};
+let paused=false,gp=0;
+const sv=b=>`<svg viewBox='0 0 220 110' role='img' style='width:100%;max-width:360px;background:#1d4a1f;border-radius:12px'>${b}</svg>`;
+const dino=(x,y,s)=>`<g transform='translate(${x} ${y}) scale(${s})'><path d='M-44 0L-86 14L-40 10Z' fill='#2f8f46'/><ellipse rx='42' ry='26' fill='#3aa655'/><ellipse cx='6' cy='8' rx='28' ry='14' fill='#8fd48a'/><circle cx='46' cy='-20' r='15' fill='#3aa655'/><rect x='50' y='-14' width='22' height='8' rx='3' fill='#3aa655'/><circle cx='50' cy='-26' r='3' fill='#fff'/><rect x='-14' y='18' width='10' height='20' fill='#1f6b32'/><rect x='12' y='18' width='10' height='20' fill='#1f6b32'/></g>`;
+const man=(x,y,c,gl)=>`<g transform='translate(${x} ${y})'><rect x='-6' y='-4' width='12' height='24' rx='4' fill='${c}'/><circle cy='-10' r='7' fill='#d8b38a'/><rect x='4' y='2' width='${gl}' height='4' fill='#222'/></g>`;
+const bushG=(x,y)=>`<g transform='translate(${x} ${y})'><ellipse rx='22' ry='16' fill='#14501d'/><circle cx='-8' cy='-4' r='4' fill='#c0392b'/><circle cx='6' cy='-6' r='4' fill='#8e44ad'/><circle cx='2' cy='5' r='4' fill='#c0392b'/></g>`;
+const jeepG=(x,y)=>`<g transform='translate(${x} ${y})'><rect x='-26' y='-8' width='52' height='16' rx='4' fill='#6b7a3a'/><rect x='-14' y='-18' width='22' height='12' fill='#6b7a3a'/><circle cx='-16' cy='9' r='7' fill='#222'/><circle cx='16' cy='9' r='7' fill='#222'/><rect x='2' y='-24' width='20' height='4' fill='#222'/></g>`;
+const tankG=(x,y)=>`<g transform='translate(${x} ${y})'><rect x='-34' y='-4' width='68' height='24' rx='5' fill='#4b5320'/><rect x='-34' y='14' width='68' height='8' rx='4' fill='#2e3314'/><rect x='-16' y='-18' width='32' height='16' rx='5' fill='#5d6a2a'/><rect x='10' y='-14' width='44' height='6' fill='#2e3314'/><circle cx='-8' cy='-10' r='3' fill='#ff2a10'/></g>`;
+const key=(x,y,t,w)=>`<rect x='${x}' y='${y}' width='${w}' height='26' rx='5' fill='#16261b' stroke='#e8a33d' stroke-width='2'/><text x='${x+w/2}' y='${y+18}' font-size='13' text-anchor='middle' fill='#f1ecd2' font-family='sans-serif'>${t}</text>`;
+const bar=(y,c,w,t)=>`<rect x='70' y='${y}' width='130' height='14' rx='7' fill='#0009'/><rect x='70' y='${y}' width='${w}' height='14' rx='7' fill='${c}'/><text x='64' y='${y+11}' font-size='11' text-anchor='end' fill='#f1ecd2' font-family='sans-serif'>${t}</text>`;
+const abi=(x,t,c)=>`<circle cx='${x}' cy='55' r='20' fill='${c}'/><text x='${x}' y='62' font-size='20' font-weight='bold' text-anchor='middle' fill='#1b1206' font-family='sans-serif'>${t}</text>`;
+const GPG=[
+['Welcome to Jungle Island',sv(dino(100,58,.9)),'You are the last dinosaur on the island. Stay fed, stay alive and survive until your difficulty’s day goal (Easy 3 days up to Nightmare 10, or Endless forever). Hunters attack by day and tanks join them every night.'],
+['Controls',sv(key(60,10,'W',26)+key(30,40,'A',26)+key(60,40,'S',26)+key(90,40,'D',26)+key(140,40,'Shift',52)+key(110,76,'Space',90)+key(160,10,'Esc',40)),'Move with WASD or the arrow keys. Hold Shift to sprint. Press Space or click to bite. Press Esc to pause. On a phone, drag on the left half to move and tap the right half to bite.'],
+['Food',sv(bushG(45,70)+man(115,60,'#8a7a4a',18)+dino(180,70,.28)),'Walk over berry bushes to eat them: +16 hunger, and they regrow after about 22 seconds. Bite humans for +28 hunger and +8 health. Hunger drains all the time, and at zero you start losing health.'],
+['Hunger, health and stamina',sv(bar(22,'#e8a33d',100,'Hunger')+bar(48,'#d9483b',120,'Health')+bar(74,'#4aa3df',80,'Stamina')),'Sprinting drains stamina quickly and burns extra hunger. Stamina refills when you stop sprinting. If it hits zero you must rest until it recovers to 25 before sprinting again. Dash costs 30 stamina.'],
+['Human hunters',sv(man(40,60,'#8a7a4a',18)+man(100,60,'#2d4a2d',34)+jeepG(170,65)),'Riflemen are common and weak. Snipers (from day 2) shoot from far away and hit hard. Jeeps (from day 3) are fast, fire three-shot bursts and take 3 bites to destroy. Close in fast and bite.'],
+['Tanks and traps',sv(tankG(55,50)+"<circle cx='150' cy='45' r='28' fill='none' stroke='#ff3b30' stroke-width='4'/><ellipse cx='185' cy='92' rx='15' ry='7' fill='#222'/><path d='M172 92l4-8 4 8 4-8 4 8 4-8 4 8' fill='none' stroke='#ccc' stroke-width='2'/>"),'At night tanks lob shells. A red ring shows where each one lands, so run out of it. Tanks take about 10 bites. Hunters also lay bear traps on the ground: stepping on one hurts and slows you for 2 seconds.'],
+['Abilities and the shop',sv(abi(40,'Q','#4aa3df')+abi(90,'R','#e8a33d')+abi(140,'F','#ff7a1a')+abi(190,'E','#8fd48a')),'Earn coins by eating, surviving days and winning, then spend them in the shop. Active abilities: Q Dash, R Thunder Roar (freezes enemies), F Fire Breath and E Earthquake. The rest are passive and always on.'],
+['Human captain mode',sv(man(70,60,'#2f4f8f',34)+dino(165,62,.45)),'Play the captain and kill the dinosaur before it kills you. Move with WASD, Shift sprints, Space or click fires, R reloads, Q swaps weapon, G grenade, H medkit, V airstrike and C calls your tank. Buy weapons, tanks and abilities in the Human arsenal tab of the shop. Difficulty sets how big, fast and angry the dinosaur is. In Endless a bigger dinosaur arrives each time you kill one. Reinforcements (B) calls in 20 troops and a tank, and Tank Platoon (N) calls in 13 tanks, and Jeep Convoy (J) calls in 8 jeeps. The dinosaur gets random powers each fight: roar, acid spit, leap, regeneration, armor, quake, extra health and fury.'],
+['2-player local',sv(key(20,12,'W',26)+key(2,42,'A',26)+key(32,42,'S',26)+key(62,42,'D',26)+key(150,12,'Up',30)+key(110,42,'Lt',26)+key(140,42,'Dn',26)+key(170,42,'Rt',26)),'One keyboard, two players, split screen: the dinosaur is on the left and the captain on the right. Player 1 is the dinosaur: WASD move, Shift sprint, Space bite, Q dash, E roar (stuns the captain). Player 2 is the captain: arrow keys move, Right Shift sprints, Enter fires, period reloads, comma swaps weapon, slash grenade, quote medkit, semicolon airstrike, L calls a tank, [ calls troops and ] calls a tank platoon, \ calls jeeps. Online play is not possible in this page.'],
+['More hunters',sv(man(30,60,'#7a3b2e',18)+man(80,60,'#d2691e',14)+man(130,60,'#555555',34)+man(180,60,'#111111',20)),'Later days bring more and more humans. Grenadiers (day 2) lob explosives, so watch the small red rings. Commandos (day 2) are fast and accurate. Flamethrowers (day 4) rush you and burn at close range. Heavy gunners (day 5) spray four bullets at once. Medics (day 2) heal wounded hunters, so kill them first. Dog handlers (day 3) bring two fast dogs that rush you and bite. In Human Captain mode, buy Squad to bring 3 AI soldiers with you.'],
+['Elite hunters',sv(man(25,60,'#2f7fb0',16)+man(65,60,'#9fd8f0',16)+man(105,60,'#e0d040',16)+man(145,60,'#b02020',16)+man(185,60,'#c0a030',16)),'From day 2, twelve special humans join the hunt. Scouts are very fast. Water soldiers slow you with jets. Juggernauts are heavily armored. Shock troopers drain your stamina. Trappers lay bear traps around you. Cryo troopers freeze you in place. Commanders make nearby hunters shoot faster. Rocketeers and mortar crews fire big explosives, so watch the red rings. Net gunners tangle you up. Bombers run in and explode. Fire tanks (day 6) are slow and armored and set you on fire.'],
+['Dinosaur types',sv(dino(55,62,.4)+dino(120,62,.25)+dino(175,62,.5)),'There are 12 dinosaur types: Raptor (fast), Triceratops (charges), Stegosaurus, Ankylosaurus (very armored), Brachiosaurus (giant, stomps), Spinosaurus, Pterodactyl (flies), Dilophosaurus (spits acid), Carnotaurus (charges), Pachycephalosaurus (headbutt stuns), Compsognathus (swarm of four) and Giganotosaurus (huge, roars). In Human Captain mode extra dinosaurs keep arriving alongside the big boss. As the dinosaur, Call Your Friends (Z) summons 4 random ones and Stampede (X) summons 12.'],
+['Your dinosaur',sv(dino(55,62,.4)+dino(120,62,.3)+dino(175,62,.5)),'The shop has a Dinosaurs tab with 50 dinosaurs to buy, each with its own advantages such as speed, armor, bite reach, stealth or extra coins. Select the one you want before you start. The Customize tab lets you pick a colour, an accessory and a size. These apply when you play as the dinosaur. The island is now much bigger, with bear traps, net traps and mines scattered everywhere.']
+];
+function rgd(){const g=GPG[gp];$('gc').innerHTML=`<h2>${g[0]}</h2>${g[1]}<p>${g[2]}</p><p>Page ${gp+1} of ${GPG.length}</p>`;$('gprev').disabled=!gp;$('gnext').disabled=gp==GPG.length-1}
+function pause(on){if(!run)return;paused=on;$('pz').hidden=!on;$('pzm').hidden=false;$('gd').hidden=true;if(on){for(const k in K)K[k]=0;joy=null;$('st').style.display='none'}}
+function openG(){gp=0;$('pz').hidden=false;$('pzm').hidden=true;$('gd').hidden=false;rgd()}
+function gback(){$('gd').hidden=true;if(run)$('pzm').hidden=false;else $('pz').hidden=true}
+$('gdb').onclick=$('gdb2').onclick=openG;$('gback').onclick=gback;
+$('gprev').onclick=()=>{gp--;rgd()};$('gnext').onclick=()=>{gp++;rgd()};
+$('rsm').onclick=()=>pause(false);$('pzb').onclick=()=>pause(true);
+$('qt').onclick=()=>{run=false;paused=false;$('pz').hidden=true;$('hud').hidden=true;$('ab').innerHTML='';$('ov').style.display='block';$('menu').hidden=false;$('shop').hidden=true;$('go').textContent='Play again';rd()};
+addEventListener('blur',()=>pause(true));
+let tab='d',gmode='dino';
+const MODES=[['dino','Dinosaur','Survive as the dinosaur'],['human','Human Captain','Hunt the dinosaur with weapons and tanks, on the same difficulties'],['mp','2-Player Local','Player 1 dinosaur (WASD) vs player 2 captain (arrow keys), split screen on one keyboard']];
+const HB=[
+['w_rifle','Assault Rifle','Weapon. Fast automatic fire, 30 rounds',100],
+['w_shot','Shotgun','Weapon. 8 pellets, brutal up close',250],
+['w_sniper','Sniper Rifle','Weapon. 60 damage, very fast bullet',350],
+['w_mg','Machine Gun','Weapon. 60 rounds, rapid fire',450],
+['w_rocket','Rocket Launcher','Weapon. Explosive splash damage',600],
+['t1','Light Tank','Tank (C or T). Allied tank with 120 HP',300],
+['t2','Medium Tank','Tank. 250 HP and stronger shells',600],
+['t3','Heavy Tank','Tank. 450 HP and huge shells',1000],
+['armor','Body Armor','Ability. Take 25% less damage',150],
+['adren','Adrenaline','Ability. Move 15% faster',120],
+['ammo','Extra Ammo','Ability. Magazines hold 50% more',150],
+['stims','Combat Stims','Ability. Stamina refills faster',100],
+['medkit','Medkit (H)','Ability. Heal 50 HP, 30s cooldown',200],
+['gren','Grenades (G)','Ability. Splash grenade, 8s cooldown',220],
+['air','Airstrike (V)','Ability. 5 bombs on the dinosaur, 40s cooldown',400],
+['jeeps','Jeep Convoy (J)','Ability. Calls in 8 jeeps that circle and shoot for 30s, 75s cooldown',900],
+['troops','Reinforcements (B)','Ability. Calls in 20 troops and a tank for 30s, 60s cooldown',700],
+['platoon','Tank Platoon (N)','Ability. Calls in 13 tanks for 30s, 90s cooldown',1200],
+['squad','Squad','Ability. 3 AI soldiers fight beside you',250],
+['nv','Night Goggles','Ability. See farther at night',100]
+].map(a=>({id:a[0],n:a[1],d:a[2],c:a[3]}));
+const LST=()=>tab=='h'?HB:AB;
+const WP=[
+{id:'pistol',n:'Pistol',dm:14,cd:.35,sp:75,ac:.03,np:1,mag:12,rl:1.2},
+{id:'w_rifle',n:'Rifle',dm:9,cd:.12,sp:90,ac:.05,np:1,mag:30,rl:2},
+{id:'w_shot',n:'Shotgun',dm:7,cd:.9,sp:60,ac:.22,np:8,mag:6,rl:2.2},
+{id:'w_sniper',n:'Sniper',dm:60,cd:1.4,sp:150,ac:0,np:1,mag:5,rl:2.5},
+{id:'w_mg',n:'Machine gun',dm:6,cd:.07,sp:90,ac:.09,np:1,mag:60,rl:3},
+{id:'w_rocket',n:'Rocket launcher',dm:60,cd:2.2,sp:45,ac:.01,np:1,mag:3,rl:3,rk:1}];
+const owned=()=>WP.filter(w=>w.id=='pistol'||H(w.id)),msz=w=>Math.round(w.mag*(H('ammo')?1.5:1));
+const mBl=M(0x2f4f8f);
+function mkCap(){const g=new THREE.Group();g.add(P(CYL,mBl,0,1.7,0,.65,2.4,.55),P(SPH,mSk,0,3.5,0,.55),P(CYL,mBl,0,4.1,0,.7,.25,.7),P(BOX,mDk,1.2,2.4,0,2.2,.3,.3));g.scale.setScalar(1.3);world.add(g);return g}
+const mkDn=(D,lv)=>{const o=mkDino();o.scale.setScalar(1.25);world.add(o);const mh=Math.round(400*D.tm*Math.pow(1.3,lv-1));return{x:MW/2+70,z:MH/2,a:Math.PI,hp:mh,mh,vx:0,vz:0,cd:0,ch:4,chg:0,st:100,ex:0,sd:0,dash:0,dcd:0,rc:0,bt:0,ab:[],cw:{roar:6,spit:2,quake:5,leap:3},o}};
+function stam(e,spr,dt,rg){if(spr){e.st-=22*dt;e.sd=.7;if(e.st<=0){e.st=0;e.ex=1}}else{e.sd-=dt;if(e.sd<=0){e.st=Math.min(100,e.st+rg*dt);if(e.ex&&e.st>=25)e.ex=0}}}
+const hurtC=n=>{S.p.hp-=n*(H('armor')?.75:1);S.sk=Math.min(1,S.sk+.4);splat(S.p.x,3,S.p.z,0xc0392b)};
+const DAB=['roar','spit','leap','regen','armor','quake','tough','fury'];
+function giveAb(d,D,lv){const n=Math.min(8,Math.max(1,Math.round(D.tm*1.6)+lv-1)),pool=DAB.slice();d.ab=[];for(let i=0;i<n&&pool.length;i++)d.ab.push(pool.splice(Math.floor(Math.random()*pool.length),1)[0]);if(d.ab.includes('tough')){d.mh=Math.round(d.mh*1.5);d.hp=d.mh}}
+function dAbil(d,p,dd,D,dt){const cw=d.cw,h=a=>d.ab.includes(a);for(const k in cw)cw[k]-=dt;
+ if(h('regen'))d.hp=Math.min(d.mh,d.hp+d.mh*.012*dt);
+ if(h('roar')&&cw.roar<=0&&dd<45){cw.roar=14;p.stun=1.6;boom(d.x,4,d.z)}
+ if(h('spit')&&cw.spit<=0&&dd>10&&dd<80){cw.spit=4.5;const a=Math.atan2(p.z-d.z,p.x-d.x),o=P(SPH,mFire,d.x,4,d.z,1.2);world.add(o);S.eb.push({o,x:d.x,z:d.z,vx:Math.cos(a)*40,vz:Math.sin(a)*40,l:2.2})}
+ if(h('leap')&&cw.leap<=0&&dd>15){cw.leap=8;d.chg=1.2}
+ if(h('quake')&&cw.quake<=0&&dd<20){cw.quake=10;S.sk=1;boom(d.x,1,d.z);boom(d.x+6,1,d.z);hurtC(20*D.dm);p.stun=.6;for(const s of S.sq)if(Math.hypot(s.x-d.x,s.z-d.z)<20)s.hp-=30}}
+const hitD=(n,t)=>{t=t||S.dn;t.hp-=n*(t.ab&&t.ab.includes('armor')?.7:1)*((t.d&&t.d.ar)||1);fx(t.x,4,t.z,[0xb3261e],4,10)};
+function exq(x,z,r,dm,t){const o=flat(mRing,x,z,r);world.add(o);S.ex.push({x,z,r,dm,t,o})}
+function fireW(w){const p=S.p,d=nearD(),dd=Math.hypot(d.x-p.x,d.z-p.z),t=dd/w.sp,a=Math.atan2(d.z+d.vz*t-p.z,d.x+d.vx*t-p.x);
+ for(let i=0;i<w.np;i++){const aa=a+R(-w.ac,w.ac),o=P(BOX,mBul,p.x,2.8,p.z,w.rk?2.2:1.6,.2,.2);o.rotation.y=-aa;world.add(o);S.pb.push({o,x:p.x+Math.cos(aa)*3,z:p.z+Math.sin(aa)*3,vx:Math.cos(aa)*w.sp,vz:Math.sin(aa)*w.sp,l:2,dm:w.dm,rk:w.rk})}
+ fx(p.x+Math.cos(a)*3,3,p.z+Math.sin(a)*3,[0xffd966],3,6);S.sk=Math.min(1,S.sk+(w.rk?.8:w.np>1?.6:.15))}
+function mkAlly(t){const T=[0,{hp:120,dm:25},{hp:250,dm:40},{hp:450,dm:70}][t],p=S.p;S.ally=Object.assign(mkT(p.x-12,p.z),{hp:T.hp,mh:T.hp,dm:T.dm,cd:2});S.ally.o.scale.setScalar(.8+t*.15)}
+function hAct(k){if(!run||paused||!S.dn)return;const p=S.p,d=S.dn,ws=owned(),w=ws[p.w%ws.length],c=S.hc;
+ if(k=='rl'&&p.rl<=0&&p.mag[w.id]<msz(w))p.rl=w.rl;
+ if(k=='sw'){p.w=(p.w+1)%ws.length;p.rl=0}
+ if(k=='gr'&&H('gren')&&c.gr<=0){c.gr=8;const t=Math.hypot(d.x-p.x,d.z-p.z)/40;exq(d.x+d.vx*t,d.z+d.vz*t,10,80,.9)}
+ if(k=='md'&&H('medkit')&&c.md<=0){c.md=30;p.hp=Math.min(p.mh,p.hp+50);fx(p.x,3,p.z,[0x7fc15a],12,10)}
+ if(k=='as'&&H('air')&&c.as<=0){c.as=40;for(let i=0;i<5;i++)exq(d.x+d.vx*1.2+R(-12,12),d.z+d.vz*1.2+R(-12,12),9,70,.6+i*.3)}
+ if(k=='tp'&&H('troops')&&c.tp<=0){c.tp=60;for(let i=0;i<20;i++)S.sq.push({x:p.x-10+R(-5,5),z:p.z+R(-20,20),hp:30,cd:R(0,1),ttl:30,o:mkCap()});if(!S.ally)mkAlly(H('t2')?2:1);boom(p.x,3,p.z)}
+ if(k=='pl'&&H('platoon')&&c.pl<=0){c.pl=90;for(let i=0;i<13;i++){const t=mkT(p.x-20-(i%5)*9,p.z+(Math.floor(i/5)-1)*14);t.ttl=30;t.cd=R(0,2);S.pl.push(t)}boom(p.x,3,p.z)}
+ if(k=='jp'&&H('jeeps')&&c.jp<=0){c.jp=75;for(let i=0;i<8;i++)S.jp.push(Object.assign(mkH(p.x-15,p.z+(i-4)*5,'j'),{ttl:30,cd:R(0,.5)}));boom(p.x,3,p.z)}
+ if(k=='tk'){const t=H('t3')?3:H('t2')?2:H('t1')?1:0;if(t&&c.tk<=0&&!S.ally){c.tk=40;mkAlly(t)}}}
+function hk(c){if(!run||paused||!S||S.mode=='dino')return;const mp=S.mode=='mp',k=(mp?{Period:'rl',Comma:'sw',Slash:'gr',Quote:'md',Semicolon:'as',KeyL:'tk',BracketLeft:'tp',BracketRight:'pl',Backslash:'jp'}:{KeyR:'rl',KeyQ:'sw',KeyG:'gr',KeyH:'md',KeyV:'as',KeyC:'tk',KeyB:'tp',KeyN:'pl',KeyJ:'jp'})[c];if(k)hAct(k)}
+function initH(mode){const mp=mode=='mp',D=mp?DIFF[1]:cur,ws=owned(),mag={};for(const w of ws)mag[w.id]=msz(w);
+ world.remove(S.p.o);S.arr.visible=false;{const a2=new THREE.Group(),c2=P(CON,mEl,0,0,0,.8,3,.8);c2.rotation.z=-Math.PI/2;a2.add(c2);a2.visible=mp;world.add(a2);S.arr2=a2}
+ S.p={x:MW/2-70,z:MH/2,a:0,hp:100,mh:100,st:100,sd:0,ex:0,cd:0,rl:0,stun:0,w:ws.length-1,mag,mv:0,o:mkCap()};
+ S.dn=mkDn(D,1);if(!mp)giveAb(S.dn,D,1);S.pb=[];S.ex=[];S.ally=null;S.sq=[];S.pl=[];S.jp=[];S.eb=[];if(H('squad'))for(let i=0;i<3;i++)S.sq.push({x:MW/2-75,z:MH/2+(i-1)*6,hp:40,cd:R(0,1),o:mkCap()});S.hc={gr:0,md:0,as:0,tk:0,tp:0,pl:0,jp:0};S.kn=0;S.sk=0;
+ if(!mp)for(const[k,t,id]of[['sw','Swap'],['rl','Reload'],['gr','Gren','gren'],['md','Med','medkit'],['as','Air','air'],['tk','Tank','t1'],['tp','Troops','troops'],['pl','Tanks','platoon'],['jp','Jeeps','jeeps']])if(!id||H(id)||(k=='tk'&&(H('t2')||H('t3')))){const b=document.createElement('button');b.textContent=t;b.style.fontSize='12px';b.onclick=()=>hAct(k);$('ab').append(b)}}
+function updateH(dt){
+ const p=S.p,d=S.dn,mp=S.mode=='mp',D=mp?DIFF[1]:cur,solo=!mp;
+ S.t+=dt;night+=(((S.t%CYC)>=DAYL?1:0)-night)*Math.min(1,dt*1.5);S.sk*=Math.exp(-6*dt);
+ const ck=mp?['ArrowLeft','ArrowRight','ArrowUp','ArrowDown']:['KeyA','KeyD','KeyW','KeyS'];
+ let cx=(K[ck[1]]||(solo&&K.ArrowRight)?1:0)-(K[ck[0]]||(solo&&K.ArrowLeft)?1:0),cz=(K[ck[3]]||(solo&&K.ArrowDown)?1:0)-(K[ck[2]]||(solo&&K.ArrowUp)?1:0);
+ if(joy&&solo){cx+=joy.dx;cz+=joy.dy}
+ const m=Math.hypot(cx,cz),spr=(mp?K.ShiftRight:(K.ShiftLeft||K.ShiftRight||(joy&&m>.95)))&&m>0&&!p.ex;
+ stam(p,spr,dt,H('stims')?32:20);
+ const ps=(spr?21:13)*(H('adren')?1.15:1)*(p.stun>0?0:1);
+ if(m>0){p.x=cl(p.x+cx/Math.max(1,m)*ps*dt,2,MW-2);p.z=cl(p.z+cz/Math.max(1,m)*ps*dt,2,MH-2)}
+ p.mv=m>0;{const nd=nearD();p.a=Math.atan2(nd.z-p.z,nd.x-p.x)}p.cd-=dt;p.stun-=dt;for(const k in S.hc)S.hc[k]-=dt;
+ const ws=owned(),w=ws[p.w%ws.length];
+ if(p.rl>0){p.rl-=dt;if(p.rl<=0)p.mag[w.id]=msz(w)}
+ if((mp?K.Enter:(K.Space||K.M))&&p.cd<=0&&p.rl<=0){if((p.mag[w.id]||0)<=0)hAct('rl');else{p.mag[w.id]--;p.cd=w.cd;fireW(w)}}
+ // dinosaur
+ const ox=d.x,oz=d.z;d.cd-=dt;d.chg-=dt;d.ch-=dt;d.dash-=dt;d.dcd-=dt;d.rc-=dt;
+ if(mp){let dx=(K.KeyD?1:0)-(K.KeyA?1:0),dz=(K.KeyS?1:0)-(K.KeyW?1:0);const dm=Math.hypot(dx,dz),sp2=K.ShiftLeft&&dm>0&&!d.ex;stam(d,sp2,dt,20);
+  if(K.KeyQ&&d.dcd<=0&&d.st>=30){d.st-=30;d.dash=.25;d.dcd=4}
+  if(dm>0)d.a=Math.atan2(dz,dx);
+  const s3=(sp2?30:19.5)*(d.dash>0?3.2:1);
+  if(dm>0||d.dash>0){const ux=d.dash>0?Math.cos(d.a):dx/Math.max(1,dm),uz=d.dash>0?Math.sin(d.a):dz/Math.max(1,dm);d.x+=ux*s3*dt;d.z+=uz*s3*dt}
+  if(K.KeyE&&d.rc<=0){d.rc=18;p.stun=1.5;boom(d.x,4,d.z)}
+  if(K.Space&&d.cd<=0){d.cd=.6;d.bt=.25;if(Math.hypot(p.x-d.x,p.z-d.z)<10)hurtC(22);if(S.ally&&Math.hypot(S.ally.x-d.x,S.ally.z-d.z)<11)S.ally.hp-=40}
+ }else{const A=S.ally,tg=A&&Math.hypot(A.x-d.x,A.z-d.z)<Math.hypot(p.x-d.x,p.z-d.z)+8?A:p,ex=tg.x-d.x,ez=tg.z-d.z,dd=Math.hypot(ex,ez);d.a=Math.atan2(ez,ex);
+  if(d.chg<=0&&d.ch<=0&&dd>25){d.chg=1.4;d.ch=R(5,8)/Math.max(.6,D.hd)}
+  const bs=(16.5+D.hd*2)*(d.hp<d.mh*.3?1.2:1)*(d.chg>0?1.9:1);
+  if(dd>6.5){d.x+=ex/dd*bs*dt;d.z+=ez/dd*bs*dt}
+  if(dd<8.5&&d.cd<=0){d.cd=1.1;d.bt=.25;const fy=d.ab.includes('fury')&&d.hp<d.mh*.5?1.3:1;if(tg==p)hurtC(18*D.dm*fy);else tg.hp-=25*D.dm*fy}dAbil(d,p,dd,D,dt)}
+ d.x=cl(d.x,3,MW-3);d.z=cl(d.z,3,MH-3);d.vx=(d.x-ox)/Math.max(dt,.001);d.vz=(d.z-oz)/Math.max(dt,.001);
+ // ally tank
+ S.sq.forEach((s,i)=>{const tx=p.x-8-Math.floor(i/7)*7,tz=p.z+((i%7)-3)*6,ex=tx-s.x,ez=tz-s.z,dd=Math.hypot(ex,ez);if(dd>3){s.x+=ex/dd*14*dt;s.z+=ez/dd*14*dt}const a=Math.atan2(d.z-s.z,d.x-s.x);s.o.position.set(s.x,0,s.z);s.o.rotation.y=-a;s.cd-=dt;if(s.cd<=0&&Math.hypot(d.x-s.x,d.z-s.z)<80){s.cd=.6;const t=Math.hypot(d.x-s.x,d.z-s.z)/85,aa=Math.atan2(d.z+d.vz*t-s.z,d.x+d.vx*t-s.x)+R(-.08,.08),o=P(BOX,mBul,s.x,2.8,s.z,1.6,.2,.2);o.rotation.y=-aa;world.add(o);S.pb.push({o,x:s.x,z:s.z,vx:Math.cos(aa)*85,vz:Math.sin(aa)*85,l:2,dm:4})}if(Math.hypot(d.x-s.x,d.z-s.z)<9&&S.t-(s.k||0)>1.1){s.k=S.t;s.hp-=25*D.dm;splat(s.x,2,s.z,0xb3261e)}if(s.ttl&&(s.ttl-=dt)<=0)s.hp=0;if(s.hp<=0){world.remove(s.o);s.dead=1}});S.sq=S.sq.filter(s=>!s.dead);
+ S.pl.forEach((t,i)=>{const tx=p.x-20-(i%5)*9,tz=p.z+(Math.floor(i/5)-1)*14,ex=tx-t.x,ez=tz-t.z,dd=Math.hypot(ex,ez),dl=Math.hypot(d.x-t.x,d.z-t.z);if(dd>3){t.x+=ex/dd*11*dt;t.z+=ez/dd*11*dt}t.a=Math.atan2(d.z-t.z,d.x-t.x);t.o.position.set(t.x,0,t.z);t.o.rotation.y=-t.a;t.cd-=dt;if(t.cd<=0&&dl<95){t.cd=2.8;const tt=dl/45,a=Math.atan2(d.z+d.vz*tt-t.z,d.x+d.vx*tt-t.x),o=P(SPH,mShell,t.x,3,t.z,1);world.add(o);S.pb.push({o,x:t.x,z:t.z,vx:Math.cos(a)*45,vz:Math.sin(a)*45,l:2.5,dm:30,rk:1,big:1})}if((t.ttl-=dt)<=0){boom(t.x,2,t.z);world.remove(t.o);t.dead=1}});S.pl=S.pl.filter(t=>!t.dead);
+ S.jp.forEach((j,i)=>{const a0=S.t*.9+i*.785,tx=d.x+Math.cos(a0)*26,tz=d.z+Math.sin(a0)*26,ex=tx-j.x,ez=tz-j.z,dd=Math.max(Math.hypot(ex,ez),1),sp=Math.min(dd*2,30);j.x=cl(j.x+ex/dd*sp*dt,2,MW-2);j.z=cl(j.z+ez/dd*sp*dt,2,MH-2);const a=Math.atan2(d.z-j.z,d.x-j.x);j.o.position.set(j.x,0,j.z);j.o.rotation.y=-a;j.cd-=dt;if(j.cd<=0&&Math.hypot(d.x-j.x,d.z-j.z)<70){j.cd=.45;const t=Math.hypot(d.x-j.x,d.z-j.z)/80,aa=Math.atan2(d.z+d.vz*t-j.z,d.x+d.vx*t-j.x)+R(-.1,.1),o=P(BOX,mBul,j.x,2.8,j.z,1.6,.2,.2);o.rotation.y=-aa;world.add(o);S.pb.push({o,x:j.x,z:j.z,vx:Math.cos(aa)*80,vz:Math.sin(aa)*80,l:1.5,dm:5})}if((j.ttl-=dt)<=0){boom(j.x,2,j.z);world.remove(j.o);j.dead=1}});S.jp=S.jp.filter(j=>!j.dead);
+ const al=S.ally;
+ if(al){const ex=p.x-12-al.x,ez=p.z+6-al.z,dd=Math.hypot(ex,ez),dl=Math.hypot(d.x-al.x,d.z-al.z);if(dd>6){al.x+=ex/dd*9*dt;al.z+=ez/dd*9*dt}
+  al.a=Math.atan2(d.z-al.z,d.x-al.x);al.o.position.set(al.x,0,al.z);al.o.rotation.y=-al.a;
+  al.cd-=dt;if(al.cd<=0&&dl<90){al.cd=2.6;const t=dl/45,a=Math.atan2(d.z+d.vz*t-al.z,d.x+d.vx*t-al.x),o=P(SPH,mShell,al.x,3,al.z,1);world.add(o);S.pb.push({o,x:al.x,z:al.z,vx:Math.cos(a)*45,vz:Math.sin(a)*45,l:2.5,dm:al.dm,rk:1,big:1})}
+  if(al.hp<=0){boom(al.x,2,al.z);world.remove(al.o);S.ally=null}}
+ if(!mp){S.xs=(S.xs===undefined?10:S.xs)-dt;if(S.xs<=0&&S.dx.length<Math.round(2+D.tm*2)+S.kn){S.xs=24/Math.max(.6,D.hm);const t0=DT[Math.floor(Math.random()*DT.length)],cnt=t0.id=='compy'?4:1;for(let i=0;i<cnt;i++){const a=R(0,6.28),hp=Math.round(t0.hp*(.6+.4*D.tm));S.dx.push({d:t0,x:cl(p.x+Math.cos(a)*85,6,MW-6),z:cl(p.z+Math.sin(a)*85,6,MH-6),hp,mh:hp,o:mkDt(t0),cd:0,chg:0,ch:R(2,6),cw:2,bt:0,vx:0,vz:0})}}}
+ for(const e of S.dx){const q=e.d,ex=p.x-e.x,ez=p.z-e.z,dd=Math.max(Math.hypot(ex,ez),1),ox=e.x,oz=e.z;e.cd-=dt;e.chg-=dt;e.ch-=dt;e.cw-=dt;
+  if(q.ch&&e.chg<=0&&e.ch<=0&&dd>22){e.chg=1.2;e.ch=R(5,8)}
+  const bs=q.sp*(e.chg>0?1.9:1);if(dd>6*q.s+3){e.x+=ex/dd*bs*dt;e.z+=ez/dd*bs*dt}
+  if(dd<7*q.s+4&&e.cd<=0){e.cd=1.1;e.bt=.25;hurtC(q.dm*D.dm);if(q.stn)p.stun=.6}
+  if(q.spit&&e.cw<=0&&dd>10&&dd<70){e.cw=4;const a=Math.atan2(ez,ex),o=P(SPH,mFire,e.x,3,e.z,1);world.add(o);S.eb.push({o,x:e.x,z:e.z,vx:Math.cos(a)*38,vz:Math.sin(a)*38,l:2.2})}
+  if(q.stomp&&e.cw<=0&&dd<18){e.cw=8;S.sk=1;boom(e.x,1,e.z);hurtC(14*D.dm)}
+  if(q.rr&&e.cw<=0&&dd<40){e.cw=15;p.stun=1.2;boom(e.x,4,e.z)}
+  e.x=cl(e.x,3,MW-3);e.z=cl(e.z,3,MH-3);e.vx=(e.x-ox)/Math.max(dt,.001);e.vz=(e.z-oz)/Math.max(dt,.001);
+  e.o.position.set(e.x,(q.fly?7:0)+Math.abs(Math.sin(S.t*12+e.x))*.4,e.z);e.o.rotation.y=-Math.atan2(ez,ex);e.o.jaw.rotation.z=e.bt>0?-.6:0;e.bt-=dt;
+  if(e.hp<=0){e.dead=1;world.remove(e.o);boom(e.x,3,e.z);S.kn2=(S.kn2||0)+1}}
+ S.dx=S.dx.filter(e=>!e.dead);
+ for(const b of S.eb){b.x+=b.vx*dt;b.z+=b.vz*dt;b.l-=dt;b.o.position.set(b.x,4,b.z);if(Math.hypot(b.x-p.x,b.z-p.z)<3){b.l=0;hurtC(16*D.dm);boom(b.x,2,b.z)}}
+ S.eb=S.eb.filter(b=>{if(b.l<=0)world.remove(b.o);return b.l>0});
+ for(const b of S.pb){b.x+=b.vx*dt;b.z+=b.vz*dt;b.l-=dt;b.o.position.set(b.x,b.rk?3:2.8,b.z);for(const e of[d,...S.dx]){if(b.l>0&&Math.hypot(b.x-e.x,b.z-e.z)<(e===d?5.5:2+e.d.s*3.5)){b.l=0;if(b.rk)exq(b.x,b.z,b.big?10:8,b.dm,0);else hitD(b.dm,e)}}}
+ S.pb=S.pb.filter(b=>{if(b.l<=0)world.remove(b.o);return b.l>0});
+ for(const e of S.ex){e.t-=dt;if(e.t<=0){e.dd=1;world.remove(e.o);boom(e.x,2,e.z);S.sk=Math.min(1,S.sk+.5);for(const z of[d,...S.dx]){const q=Math.hypot(z.x-e.x,z.z-e.z);if(q<e.r+3)hitD(e.dm*(1-q/(e.r+8)),z)}}}
+ S.ex=S.ex.filter(e=>!e.dd);
+ for(const f of S.fx){f.o.position.x+=f.vx*dt;f.o.position.y=Math.max(.1,f.o.position.y+f.vy*dt);f.o.position.z+=f.vz*dt;f.vy-=30*dt;f.l-=dt}
+ S.fx=S.fx.filter(f=>{if(f.l<=0)world.remove(f.o);return f.l>0});
+ if(d.hp<=0){S.kn++;if(mp||D.days<1e8)return endH(true);boom(d.x,3,d.z);world.remove(d.o);S.dn=mkDn(D,S.kn+1);giveAb(S.dn,D,S.kn+1);S.dn.x=cl(p.x+R(-90,90),10,MW-10);S.dn.z=cl(p.z+R(-90,90),10,MH-10)}
+ if(p.hp<=0)return endH(false);
+ $('hu').style.width=Math.max(0,d.hp/d.mh*100)+'%';$('hp').style.width=Math.max(0,p.hp/p.mh*100)+'%';$('stb').style.width=p.st+'%';
+ if(mp){$('h1').textContent='P1 DINOSAUR  HP '+Math.max(0,Math.round(d.hp))+'/'+d.mh+'  Stamina '+Math.round(d.st)+'  Dash '+(d.dcd>0?Math.ceil(d.dcd)+'s':'ready')+'  Roar '+(d.rc>0?Math.ceil(d.rc)+'s':'ready');$('h2').textContent='P2 CAPTAIN  HP '+Math.max(0,Math.round(p.hp))+'  Stamina '+Math.round(p.st)+'  '+w.n+' '+(p.rl>0?'reloading':p.mag[w.id]+'/'+msz(w))}
+ $('clock').textContent=mp?'Duel: dinosaur vs captain':cur.n+', dinosaur '+(S.kn+1)+' powers: '+d.ab.join(', ');
+ $('sc').textContent=w.n+' '+(p.rl>0?'reloading':p.mag[w.id]+'/'+msz(w))+(S.ally?', tank '+Math.round(S.ally.hp)+' HP':'')+(S.dx.length?', pack '+S.dx.length:'');
+}
+function drawH(dt){
+ const p=S.p,d=S.dn,mp=S.mode=='mp';
+ col.lerpColors(colD,colN,night);scn.background=col;scn.fog.color.copy(col);
+ scn.fog.near=60-night*35;scn.fog.far=240-night*(150-(H('nv')?55:0));
+ amb.intensity=.9-.78*night;sun.intensity=.8-.75*night;glow.intensity=night*1.5;glow.distance=H('nv')?75:45;glow.position.set(p.x,12,p.z);sun.position.set(p.x+30,60,p.z+20);sun.target.position.set(p.x,0,p.z);
+ const dd=Math.hypot(d.x-p.x,d.z-p.z),f=mp?.5:Math.min(.5,9/Math.max(dd,1)),fxx=p.x+(d.x-p.x)*f,fzz=p.z+(d.z-p.z)*f,hh=27+(mp?Math.min(45,dd*.45):0),sk=S.sk*1.2;
+ if(mp){tv.set(p.x+R(-sk,sk),30,p.z+26+R(-sk,sk));cam.position.lerp(tv,1-Math.exp(-6*dt));cam.lookAt(p.x,0,p.z-1);tv.set(d.x+R(-sk,sk),34,d.z+30+R(-sk,sk));camD.position.lerp(tv,1-Math.exp(-6*dt));camD.lookAt(d.x,0,d.z-2);glow2.position.set(d.x,12,d.z);glow2.intensity=night*1.5;S.arr2.position.set(d.x,13,d.z);S.arr2.rotation.y=-Math.atan2(p.z-d.z,p.x-d.x)}else{glow2.intensity=0;tv.set(fxx+R(-sk,sk),hh,fzz+25+(hh-27)*.9+R(-sk,sk));cam.position.lerp(tv,1-Math.exp(-6*dt));cam.lookAt(fxx,0,fzz-1)}
+ p.o.position.set(p.x,p.mv?Math.abs(Math.sin(S.t*10))*.25:0,p.z);p.o.rotation.y=-p.a;S.arr.visible=true;S.arr.position.set(p.x,11,p.z);S.arr.rotation.y=-p.a;
+ d.o.position.set(d.x,Math.abs(Math.sin(S.t*12))*.4,d.z);d.o.rotation.y=-d.a;d.o.jaw.rotation.z=d.bt>0?-.6:0;d.bt-=dt;
+}
+function toMenuUI(){$('pz').hidden=true;$('hud').hidden=true;$('ab').innerHTML='';$('ov').style.display='block';$('menu').hidden=false;$('shop').hidden=true;$('go').textContent='Play again';rd()}
+function endH(win){run=false;const mp=S.mode=='mp',earn=mp?0:Math.round(((win?200:0)+S.kn*150+(S.kn2||0)*40+Math.floor(S.t/6))*cur.c*(H('magnet')?1.3:1));SV.coins+=earn;save();
+ $('m').textContent=mp?(win?'Player 2, the captain, defeated the dinosaur!':'Player 1, the dinosaur, wins!'):(win?'The dinosaur is down! ':'The dinosaur got you. ')+(mp?'':'Dinosaurs defeated: '+S.kn+'. You earned '+earn+' coins. Spend them in the human arsenal.');
+ toMenuUI()}
+SV.dn=SV.dn||[];SV.cz=SV.cz||{};
+const AN={sp:'Speed',ss:'Sprint speed',hp:'Max health',bt:'Bite reach',qb:'Bite speed',ar:'Damage reduction',bl:'Slower hunger',rg:'Health regen',bf:'Berry food',mf:'Meat food',cn:'Coins',sr:'Stamina regen',dc:'Dash cooldown',tr:'Trap resistance',sl:'Stealth',fm:'Food pickup range'};
+const DS=[['Velociraptor','sp18,qb12'],['Triceratops','ar22,hp20'],['Stegosaurus','ar15,tr40'],['Ankylosaurus','ar32,hp15'],['Brachiosaurus','hp45,fm40'],['Spinosaurus','bt25,mf20'],['Pteranodon','sp22,sl25'],['Dilophosaurus','sl30,bf20'],['Carnotaurus','ss20,bt15'],['Pachycephalosaurus','qb20,hp15'],['Compsognathus','sl35,sr25'],['Giganotosaurus','hp40,bt20'],['Allosaurus','qb25,mf15'],['Diplodocus','hp35,bl20'],['Parasaurolophus','sr30,dc20'],['Iguanodon','bf35,rg1'],['Utahraptor','sp12,ss15,qb10'],['Deinonychus','qb22,sl15'],['Therizinosaurus','bt35,ar10'],['Baryonyx','mf30,tr25'],['Ceratosaurus','bt18,rg1'],['Gallimimus','sp25,sr15'],['Oviraptor','bf25,fm30'],['Protoceratops','ar18,bl15'],['Styracosaurus','ar20,bt12'],['Edmontosaurus','bl25,sr20'],['Maiasaura','rg2,bf15'],['Megalosaurus','hp25,qb15'],['Mapusaurus','hp30,mf20,bt10'],['Argentinosaurus','hp60,fm25'],['Amargasaurus','tr35,sl15'],['Kentrosaurus','tr30,ar12'],['Nodosaurus','ar25,tr20'],['Euoplocephalus','ar28,qb10'],['Corythosaurus','sl20,dc25'],['Lambeosaurus','sr25,bl15'],['Troodon','sl28,sp10'],['Microraptor','sp20,dc30'],['Dracorex','bt15,ss12'],['Albertosaurus','qb18,sp10'],['Gorgosaurus','bt20,hp20'],['Majungasaurus','mf25,ar10'],['Suchomimus','mf22,bf10,tr15'],['Irritator','cn25,sp8'],['Sinosauropteryx','cn20,sl18'],['Psittacosaurus','bf30,tr20'],['Hypsilophodon','sp16,dc22'],['Shunosaurus','ar14,hp25,bl10'],['Camarasaurus','bl30,hp20'],['Apatosaurus','hp50,bl15,sr10']].map((a,i)=>{const ad=a[1].split(',').map(s=>[s.slice(0,2),+s.slice(2)]);let h=0;for(const ch of a[0])h=(h*31+ch.charCodeAt(0))%360;return{id:'d'+i,n:a[0],a:ad,c:120+i*55,col:new THREE.Color().setHSL(h/360,.5,.4).getHex(),s:.9+(h%30)/100,t:ad.map(x=>AN[x[0]]+' '+(x[0]=='hp'?'+'+x[1]:x[0]=='rg'?'+'+x[1]+'/s':'+'+x[1]+'%')).join(', ')}});
+const DSEL=()=>SV.sel?DS.find(d=>d.id==SV.sel):null;
+function adv(k){let v=0;const d=DSEL(),z=SV.cz||{};if(d)for(const a of d.a)if(a[0]==k)v+=a[1];if(z.size=='S'){if(k=='sp')v+=10;if(k=='hp')v-=15}if(z.size=='L'){if(k=='hp')v+=25;if(k=='sp')v-=8}return v}
+function mkMy(){const o=mkDino(),z=SV.cz||{},sp=DSEL(),c=z.col?new THREE.Color(z.col).getHex():sp?sp.col:0;if(c){const cm=M(c);o.traverse(m=>{if(m.material===mG)m.material=cm})}
+ o.scale.setScalar((z.size=='S'?.85:z.size=='L'?1.2:1)*(sp?sp.s:1));const A=z.acc;
+ if(A=='horns')o.add(P(CON,mW,5.2,6.4,.9,.35,1.6,.35),P(CON,mW,5.2,6.4,-.9,.35,1.6,.35));
+ if(A=='spikes')for(let x=-4;x<=3;x+=1.4)o.add(P(CON,mK,x,6.4,0,.4,1.6,.4));
+ if(A=='crest')o.add(P(BOX,mFire,3.5,6.6,0,2.4,1.8,.3));
+ if(A=='sail')o.add(P(BOX,mWat,-1,7,0,6,3,.25));
+ if(A=='plates')for(let x=-3;x<=3;x+=2)o.add(P(BOX,mDk,x,5.7,0,1.2,.6,2.6));
+ return o}
+function rsn(){$('grid').innerHTML=`<div class='card own'><b>Tyrannosaurus Rex</b><small>Your starting dinosaur. No bonuses.</small><button data-n='rex' ${!SV.sel?'disabled':''}>${!SV.sel?'Selected':'Select'}</button></div>`+DS.map(d=>{const o=SV.dn.includes(d.id),s=SV.sel==d.id;return `<div class='card${o?' own':''}'><b>${d.n}</b><small>${d.t}</small><button data-n='${d.id}' ${s||(!o&&SV.coins<d.c)?'disabled':''}>${s?'Selected':o?'Select':'Buy for '+d.c}</button></div>`}).join('')}
+const COLS=['#3aa655','#2f8f46','#b5651d','#c0392b','#2a6a9a','#8a4a9a','#c0a020','#333333','#e8e8e8','#e67e22','#16a085','#d35498'];
+const ACCS=[['none','None'],['horns','Horns'],['spikes','Back spikes'],['crest','Crest'],['sail','Sail'],['plates','Armor plates']];
+function rcz(){const z=SV.cz;$('grid').innerHTML=`<div class='card' style='grid-column:1/-1'><b>Colour</b><br>`+COLS.map(c=>`<button data-c='${c}' style='background:${c};width:38px;height:38px;padding:0;margin:4px;border:3px solid ${z.col==c?'#fff':'#0008'}' aria-label='Colour ${c}'></button>`).join('')+`</div><div class='card' style='grid-column:1/-1'><b>Accessory</b><br>`+ACCS.map(a=>`<button data-a='${a[0]}' ${(z.acc||'none')==a[0]?'disabled':''}>${a[1]}</button>`).join(' ')+`</div><div class='card' style='grid-column:1/-1'><b>Size</b><small>Small: +10% speed, -15 health. Normal: no change. Large: +25 health, -8% speed.</small>`+[['S','Small'],['N','Normal'],['L','Large']].map(a=>`<button data-z='${a[0]}' ${(z.size||'N')==a[0]?'disabled':''}>${a[1]}</button>`).join(' ')+`</div>`}
+function gclick(b){const d=b.dataset;if(d.n){if(d.n=='rex')SV.sel=null;else{const x=DS.find(q=>q.id==d.n);if(!SV.dn.includes(x.id)){if(SV.coins<x.c)return;SV.coins-=x.c;SV.dn.push(x.id)}SV.sel=x.id}}else if(d.c)SV.cz.col=d.c;else if(d.a)SV.cz.acc=d.a;else if(d.z)SV.cz.size=d.z;save();rsh()}
+$('tabn').onclick=()=>{tab='n';rsh()};$('tabc').onclick=()=>{tab='c';rsh()};
+const camD=new THREE.PerspectiveCamera(55,1,.5,400),glow2=new THREE.PointLight(0xffe8b0,0,45);scn.add(glow2);let split=0;
+function renderAll(){const w=innerWidth,h=innerHeight;
+ if(S&&S.mode=='mp'&&run){const a=w/2/h;cam.aspect=camD.aspect=a;cam.updateProjectionMatrix();camD.updateProjectionMatrix();ren.setScissorTest(true);
+  ren.setViewport(0,0,w/2,h);ren.setScissor(0,0,w/2,h);ren.render(scn,camD);
+  ren.setViewport(w/2,0,w/2,h);ren.setScissor(w/2,0,w/2,h);ren.render(scn,cam);ren.setScissorTest(false);split=1}
+ else{if(split){split=0;rs()}ren.setViewport(0,0,w,h);ren.render(scn,cam)}}
+$('modes').onclick=e=>{const b=e.target.closest('button');if(b){gmode=b.dataset.m;rd()}};
+$('tabd').onclick=()=>{tab='d';rsh()};$('tabh').onclick=()=>{tab='h';rsh()};
+function loop(ts){const dt=Math.min(.05,(ts-last)/1000||0);last=ts;if(run&&!paused)update(dt);if(S)draw(dt);renderAll();requestAnimationFrame(loop)}
+init();rd();requestAnimationFrame(loop);
+</script>
+</body>
+</html>
